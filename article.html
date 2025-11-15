@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Article • Fahmy Financial Page</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="styles.css" />
+
+  <!-- Markdown parser (turns .md into HTML) -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+
+<body>
+  <header class="site-header">
+    <div class="container">
+      <h1 class="site-title">Fahmy Macro Wire</h1>
+      <p class="site-subtitle">
+        Portfolio-focused financial news · Mock data for hackathon demo
+      </p>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <!-- Back Link -->
+    <a href="index.html" class="back-link">&larr; Back to Articles</a>
+
+    <!-- The Article Container -->
+    <article class="article-page">
+      <h2 id="article-title">Loading...</h2>
+      <p class="meta" id="article-meta"></p>
+      <div id="article-content" class="article-content"></div>
+    </article>
+
+    <!-- Pretty JSON block for parsers -->
+    <section class="section">
+      <h3>Metadata for Parsers</h3>
+      <pre id="article-raw-meta" class="code-block"></pre>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>© 2025 Fahmy Macro Wire · Mock data source for hackathon demonstration</p>
+    </div>
+  </footer>
+
+  <script>
+    // Get "?slug=xxxxx" from URL
+    function getSlug() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get("slug") || "nvda-palantir-deal";
+    }
+
+    // Extract YAML-style front-matter
+    function parseFrontMatter(text) {
+      const lines = text.split("\n");
+
+      if (lines[0].trim() !== "---") {
+        return { meta: {}, body: text };
+      }
+
+      let metaLines = [];
+      let i = 1;
+
+      while (i < lines.length && lines[i].trim() !== "---") {
+        metaLines.push(lines[i]);
+        i++;
+      }
+
+      const body = lines.slice(i + 1).join("\n");
+      const meta = {};
+
+      metaLines.forEach((line) => {
+        const idx = line.indexOf(":");
+        if (idx !== -1) {
+          const key = line.slice(0, idx).trim().toLowerCase();
+          const value = line.slice(idx + 1).trim();
+          meta[key] = value;
+        }
+      });
+
+      return { meta, body };
+    }
+
+    async function loadArticle() {
+      const slug = getSlug();
+      const path = `articles/${slug}.md`;
+
+      const titleEl = document.getElementById("article-title");
+      const metaEl = document.getElementById("article-meta");
+      const contentEl = document.getElementById("article-content");
+      const rawMetaEl = document.getElementById("article-raw-meta");
+
+      try {
+        const res = await fetch(path);
+        const text = await res.text();
+
+        const { meta, body } = parseFrontMatter(text);
+
+        // Set fallback values
+        const title = meta.title || "(Untitled)";
+        const date = meta.date || "Unknown";
+        const publisher = meta.publisher || "Fahmy Macro Wire";
+        const editors = meta.editors || "N/A";
+        const tickers = meta.tickers || "N/A";
+        const sentiment = meta.sentiment || "N/A";
+
+        // Populate HTML
+        titleEl.textContent = title;
+        metaEl.textContent = `Date: ${date} · Publisher: ${publisher} · Editors: ${editors} · Tickers: ${tickers} · Sentiment: ${sentiment}`;
+        contentEl.innerHTML = marked.parse(body);
+
+        // Generate a JSON object for Selenium/Connor’s parser
+        rawMetaEl.textContent = JSON.stringify(
+          {
+            slug,
+            title,
+            date,
+            publisher,
+            editors,
+            tickers,
+            sentiment
+          },
+          null,
+          2
+        );
+
+      } catch (err) {
+        titleEl.textContent = "Error Loading Article";
+        contentEl.textContent = `Could not load file: ${path}`;
+      }
+    }
+
+    loadArticle();
+  </script>
+
+</body>
+</html>
